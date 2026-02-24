@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BES xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="BES.xsd">
+	<Task>
+		<Title>Dynamic CPU Usage for Multiple CPU Environment</Title>
+		<Description>Dynamic CPU Usage for Multiple CPU Environment </Description>
+		<Relevance>true</Relevance>
+		<Category></Category>
+		<Source>Internal</Source>
+		<SourceID></SourceID>
+		<SourceReleaseDate>2026-02-24</SourceReleaseDate>
+		<SourceSeverity></SourceSeverity>
+		<CVENames></CVENames>
+		<SANSID></SANSID>
+		<MIMEField>
+			<Name>x-fixlet-modification-time</Name>
+			<Value>Tue, 24 Feb 2026 10:38:56 +0000</Value>
+		</MIMEField>
+		<Domain>BESC</Domain>
+		<DefaultAction ID="Action1">
+			<Description>
+				<PreLink>Click </PreLink>
+				<Link>here</Link>
+				<PostLink> to deploy this action.</PostLink>
+			</Description>
+			<ActionScript MIMEType="application/x-Fixlet-Windows-Shell"><![CDATA[// 1. Prompt the user for the Target CPU % (e.g., entering "5" means 5%)
+action parameter query "TargetCPU" with description "Enter Max Agent CPU Precentage:" with default "5"
+
+// 2. Convert inputs into floating point numbers (Explicitly casting "100.0")
+parameter "Target" = "{parameter "TargetCPU" of action as floating point / "100.0" as floating point}"
+parameter "N" = "{number of processors as floating point}"
+
+// 3. Calculate R (Target * N) 
+parameter "R" = "{(parameter "Target" as floating point) * (parameter "N" as floating point)}"
+
+// 4. Calculate the required Sleep-to-Work ratio (All outputs cast as strings, explicit floating points)
+parameter "Ratio" = "{if (parameter "R" as floating point >= "1.0" as floating point) then "0.0" else if (parameter "R" as floating point <= "0.0" as floating point) then "500.0" else ((("1.0" as floating point - parameter "R" as floating point) / parameter "R" as floating point) as string)}"
+
+// 5. Calculate WorkIdle and SleepIdle (Using semicolon for maximum lists, explicit floating points)
+parameter "WorkIdle" = "{if (parameter "Ratio" as floating point >= "1.0" as floating point) then (maximum of (1; ("500.0" as floating point / parameter "Ratio" as floating point) as integer)) as string else "500"}"
+
+parameter "SleepIdle" = "{if (parameter "Ratio" as floating point >= "1.0" as floating point) then "500" else (maximum of (1; ("500.0" as floating point * parameter "Ratio" as floating point) as integer)) as string}"
+
+// 6. Apply the calculated settings to the BigFix Client
+setting "_BESClient_Resource_WorkIdle"="{parameter "WorkIdle"}" on "{now}" for client
+setting "_BESClient_Resource_SleepIdle"="{parameter "SleepIdle"}" on "{now}" for client]]></ActionScript>
+		</DefaultAction>
+	</Task>
+</BES>
